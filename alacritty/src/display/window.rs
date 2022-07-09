@@ -4,7 +4,7 @@ use {
     std::sync::atomic::AtomicBool,
     std::sync::Arc,
 
-    winit::platform::unix::{WindowBuilderExtUnix, WindowExtUnix},
+    winit::platform::x11::{WindowBuilderExtX11, WindowExtX11},
 };
 
 #[rustfmt::skip]
@@ -12,7 +12,8 @@ use {
 use {
     wayland_client::protocol::wl_surface::WlSurface,
     wayland_client::{Attached, EventQueue, Proxy},
-    winit::platform::unix::EventLoopWindowTargetExtUnix,
+    winit::platform::wayland::WindowExtWayland,
+    winit::platform::wayland::EventLoopWindowTargetExtWayland,
     winit::window::Theme,
 };
 
@@ -277,7 +278,8 @@ impl Window {
 
         let builder = WindowBuilder::new()
             .with_title(&identity.title)
-            .with_name(&identity.class.general, &identity.class.instance)
+            // winit doing whatever again
+            // .with_name(&identity.class.general, &identity.class.instance)
             .with_visible(false)
             .with_transparent(true)
             .with_decorations(window_config.decorations != Decorations::None)
@@ -300,10 +302,13 @@ impl Window {
         };
 
         #[cfg(feature = "wayland")]
-        let builder = match window_config.decorations_theme_variant() {
-            Some("light") => builder.with_wayland_csd_theme(Theme::Light),
-            // Prefer dark theme by default, since default alacritty theme is dark.
-            _ => builder.with_wayland_csd_theme(Theme::Dark),
+        let builder = {
+            let theme = match window_config.decorations_theme_variant() {
+                Some("light") => Theme::Light,
+                // Prefer dark theme by default, since default alacritty theme is dark.
+                _ => Theme::Dark,
+            };
+            builder.with_theme(Some(theme))
         };
 
         builder
